@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EQUDATOR // SYSTEM KERNEL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+    <style>
+        :root {
+            --bg-deep: #050507;
+            --panel-bg: #0a0a0f;
+            --border-dim: #1f2937;
+            --border-bright: #38bdf8;
+            --accent-cyan: #22d3ee;
+            --accent-purple: #c084fc;
+            --accent-green: #4ade80;
+            --grid-major: rgba(56, 189, 248, 0.1);
+            --grid-minor: rgba(56, 189, 248, 0.03);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #94a3b8;
+            font-family: 'JetBrains Mono', monospace; /* Tech font default */
+            overflow: hidden;
+            font-size: 11px;
+        }
+
+        /* --- Technical Grid Background --- */
+        .tech-grid {
+            position: fixed; inset: 0; z-index: 0;
+            background-image: 
+                linear-gradient(var(--grid-minor) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px),
+                linear-gradient(var(--grid-major) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-major) 1px, transparent 1px);
+            background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+            mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
+        }
+
+        /* --- Nodes: Industrial Design --- */
+        .node-shell {
+            position: absolute;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-dim);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+        
+        .node-shell::before { /* Technical corner marker */
+            content: ''; position: absolute; top: -1px; left: -1px;
+            width: 8px; height: 8px; border-top: 2px solid var(--border-dim); border-left: 2px solid var(--border-dim);
+            transition: border-color 0.2s;
+        }
+        .node-shell::after { /* Technical corner marker */
+            content: ''; position: absolute; bottom: -1px; right: -1px;
+            width: 8px; height: 8px; border-bottom: 2px solid var(--border-dim); border-right: 2px solid var(--border-dim);
+            transition: border-color 0.2s;
+        }
+
+        .node-shell:hover {
+            border-color: var(--border-bright);
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.1);
+            z-index: 50;
+        }
+        .node-shell:hover::before, .node-shell:hover::after { border-color: var(--accent-cyan); }
+
+        .node-header {
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 8px 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .node-body { padding: 12px; }
+
+        .node-footer {
+            border-top: 1px solid var(--border-dim);
+            padding: 6px 12px;
+            display: flex; justify-content: space-between;
+            font-size: 9px; color: #475569;
+        }
+
+        /* --- Circuitry (Orthogonal) --- */
+        .circuit-layer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+
+        .trace {
+            fill: none;
+            stroke: #1e293b;
+            stroke-width: 1.5;
+        }
+        
+        .trace-flow {
+            fill: none;
+            stroke: var(--accent-cyan);
+            stroke-width: 2;
+            stroke-dasharray: 4 4;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .trace-flow.active {
+            opacity: 1;
+            animation: flowData 1s linear infinite;
+        }
+
+        @keyframes flowData { to { stroke-dashoffset: -8; } }
+
+        /* --- Terminal / Log --- */
+        .system-log {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 160px;
+            background: #020203; border-top: 1px solid var(--border-dim);
+            z-index: 100; font-family: 'JetBrains Mono', monospace;
+            padding: 10px; overflow: hidden;
+            mask-image: linear-gradient(to bottom, transparent, black 20%);
+        }
+        
+        .log-entry { margin-bottom: 4px; opacity: 0.7; }
+        .log-entry::before { content: '>'; color: var(--accent-cyan); margin-right: 8px; }
+        .log-time { color: #475569; margin-right: 8px; }
+
+        /* --- Status Lights --- */
+        .led { width: 6px; height: 6px; border-radius: 50%; background: #334155; }
+        .led.on { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .led.busy { background: var(--accent-purple); animation: blink 0.5s infinite; }
+    </style>
+</head>
+<body>
+
+    <div class="tech-grid"></div>
+
+    <!-- Top Status Bar -->
+    <div class="fixed top-0 left-0 w-full h-10 border-b border-[#1f2937] bg-[#050507]/90 backdrop-blur flex justify-between items-center px-6 z-50">
+        <div class="flex items-center gap-4">
+            <span class="font-bold text-white tracking-widest">EQUDATOR <span class="text-cyan-500">KERNEL</span></span>
+            <span class="text-[9px] px-2 py-0.5 border border-cyan-900 bg-cyan-900/20 text-cyan-400 rounded">v2.4.1-STABLE</span>
+        </div>
+        <div class="flex gap-6 text-[9px]">
+            <span>VRAM: <span class="text-white">4092MB</span> / 6144MB</span>
+            <span>UPTIME: <span class="text-white">14h 22m</span></span>
+            <span class="text-green-500">SYSTEM OPTIMAL</span>
+        </div>
+    </div>
+
+    <!-- Main Schematic Canvas -->
+    <!-- Scale wrapper allows the diagram to fit on smaller screens without breaking layout -->
+    <div id="schematic-container" class="relative w-[1600px] h-[800px] mt-10 scale-90 origin-top-left ml-10">
+
+        <!-- CIRCUITRY LAYER (SVG) -->
+        <svg class="circuit-layer">
+            <defs>
+                <marker id="dot" markerWidth="4" markerHeight="4" refX="2" refY="2"><circle cx="2" cy="2" r="1.5" fill="#38bdf8"/></marker>
+            </defs>
+
+            <!-- 1. Market Data -> LSTM -->
+            <!-- Orthogonal Path: (240,150) -> (300,150) -->
+            <path id="path-market" d="M 240 150 L 320 150" class="trace" marker-end="url(#dot)"/>
+            <path d="M 240 150 L 320 150" class="trace-flow active" />
+
+            <!-- 2. LSTM -> Fusion (Complex Route) -->
+            <!-- (540, 150) -> (600,150) -> (600, 300) -> (800, 300) -->
+            <path d="M 540 150 L 600 150 L 600 300 L 800 300" class="trace" />
+            <path d="M 540 150 L 600 150 L 600 300 L 800 300" class="trace-flow active" style="animation-duration: 2s"/>
+
+            <!-- 3. News -> Embed -->
+            <path d="M 240 500 L 320 500" class="trace" marker-end="url(#dot)"/>
+            <path d="M 240 500 L 320 500" class="trace-flow active" />
+
+            <!-- 4. Embed -> Graph Construct -->
+            <path d="M 540 500 L 580 500" class="trace" marker-end="url(#dot)"/>
+            <path d="M 540 500 L 580 500" class="trace-flow active" />
+
+            <!-- 5. Graph Construct -> GNN -->
+            <path d="M 740 500 L 780 500 L 780 440" class="trace" />
+            <path d="M 740 500 L 780 500 L 780 440" class="trace-flow active" />
+
+            <!-- 6. Market Data -> Graph Construct (Correlation Logic) -->
+            <!-- Dotted line showing price influence on graph edges -->
+            <path d="M 240 150 L 280 150 L 280 450 L 660 450 L 660 470" class="trace" stroke-dasharray="2 2" opacity="0.4"/>
+
+            <!-- 7. GNN -> Fusion -->
+            <path d="M 880 380 L 880 340 L 840 340" class="trace" />
+            <path d="M 880 380 L 880 340 L 840 340" class="trace-flow active" />
+
+            <!-- 8. Fusion -> Dense -> Output -->
+            <path d="M 980 320 L 1040 320" class="trace" marker-end="url(#dot)"/>
+            <path d="M 980 320 L 1040 320" class="trace-flow active fast" />
+            
+            <path d="M 1240 320 L 1280 320 L 1280 250 L 1320 250" class="trace" />
+            <path d="M 1240 320 L 1280 320 L 1280 250 L 1320 250" class="trace-flow active fast" />
+            
+            <path d="M 1240 320 L 1280 320 L 1280 400 L 1320 400" class="trace" />
+            <path d="M 1240 320 L 1280 320 L 1280 400 L 1320 400" class="trace-flow active fast" />
+
+        </svg>
+
+        <!-- === INPUT CLUSTER === -->
+        <div class="node-shell w-[240px]" style="top: 100px; left: 0;">
+            <div class="node-header text-cyan-400">
+                <span><i data-lucide="database" class="inline w-3 h-3 mr-2"></i>FEED_MK_01</span>
+                <div class="led on"></div>
+            </div>
+            <div class="node-body">
+                <div class="text-white font-bold mb-2">MARKET OHLCV</div>
+                <div class="grid grid-cols-2 gap-2 text-[9px]">
+                    <div class="bg-black p-1 border border-white/10">OPEN: <span class="text-green-400">142.50</span></div>
+                    <div class="bg-black p-1 border border-white/10">VOL: <span class="text-blue-400">1.2M</span></div>
+                </div>
+            </div>
+            <div class="node-footer"><span>ID: 0x4F2A</span><span>50Hz</span></div>
+        </div>
+
+        <div class="node-shell w-[240px]" style="top: 450px; left: 0;">
+            <div class="node-header text-purple-400">
+                <span><i data-lucide="rss" class="inline w-3 h-3 mr-2"></i>FEED_RSS_02</span>
+                <div class="led on"></div>
+            </div>
+            <div class="node-body">
+                <div class="text-white font-bold mb-2">RSS INGESTION</div>
+                <div class="bg-black p-2 border border-white/10 text-[9px] font-mono text-slate-500 overflow-hidden whitespace-nowrap">
+                    "Adani Enterprises qtr profit..."
+                </div>
+            </div>
+            <div class="node-footer"><span>ID: 0x8B1C</span><span>Async</span></div>
+        </div>
+
+        <!-- === PROCESSING LAYER === -->
+        <div class="node-shell w-[220px]" style="top: 100px; left: 320px;">
+            <div class="node-header text-slate-400">
+                <span>PROC_LSTM</span>
+                <div class="led busy"></div>
+            </div>
+            <div class="node-body">
+                <div class="text-white font-bold mb-1">LSTM Network</div>
+                <div class="text-[10px] text-slate-500 mb-3">Temporal Sequence (60d)</div>
+                <!-- Visualizing LSTM Cells -->
+                <div class="flex gap-1 h-8">
+                    <div class="w-1/5 h-full bg-blue-900/40 border border-blue-500/50 rounded-sm"></div>
+                    <div class="w-1/5 h-full bg-blue-900/60 border border-blue-500/50 rounded-sm"></div>
+                    <div class="w-1/5 h-full bg-blue-900/80 border border-blue-500/50 rounded-sm"></div>
+                    <div class="w-1/5 h-full bg-blue-500 border border-blue-400 rounded-sm shadow-[0_0_10px_#3b82f6]"></div>
+                    <div class="w-1/5 h-full bg-blue-900/20 border border-blue-500/30 rounded-sm"></div>
+                </div>
+            </div>
+            <div class="node-footer"><span>TENSOR: [64, 60, 5]</span></div>
+        </div>
+
+        <div class="node-shell w-[220px]" style="top: 450px; left: 320px;">
+            <div class="node-header text-slate-400">
+                <span>PROC_NLP</span>
+                <div class="led on"></div>
+            </div>
+            <div class="node-body">
+                <div class="text-white font-bold mb-1">Transformer</div>
+                <div class="text-[10px] text-slate-500 mb-3">SentenceBERT Embedding</div>
+                <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-purple-500 w-[80%]"></div>
+                </div>
+            </div>
+            <div class="node-footer"><span>VEC: [384]</span><span>FP16</span></div>
+        </div>
+
+        <div class="node-shell w-[160px]" style="top: 470px; left: 580px;">
+            <div class="node-header text-slate-500">
+                <span>GRAPH_GEN</span>
+            </div>
+            <div class="node-body">
+                <div class="text-white font-bold text-xs mb-2">ADJ. MATRIX</div>
+                <!-- Mini Grid Visual -->
+                <div class="grid grid-cols-4 gap-0.5 opacity-60">
+                    <div class="h-2 bg-cyan-500"></div><div class="h-2 bg-slate-800"></div><div class="h-2 bg-cyan-500"></div><div class="h-2 bg-slate-800"></div>
+                    <div class="h-2 bg-slate-800"></div><div class="h-2 bg-cyan-500"></div><div class="h-2 bg-slate-800"></div><div class="h-2 bg-cyan-500"></div>
+                    <div class="h-2 bg-cyan-500"></div><div class="h-2 bg-slate-800"></div><div class="h-2 bg-cyan-500"></div><div class="h-2 bg-slate-800"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- === CORE INTELLIGENCE === -->
+        <div class="node-shell w-[180px]" style="top: 380px; left: 780px;">
+             <div class="node-header text-purple-400">
+                <span>MODEL_GNN</span>
+                <div class="led on"></div>
+            </div>
+            <div class="node-body">
+                <div class="text-white font-bold mb-1">GNN / GAT</div>
+                <div class="text-[10px] text-slate-500">Attention Mechanism</div>
+            </div>
+            <div class="node-footer"><span>NODES: 50</span><span>EDGES: 200</span></div>
+        </div>
+
+        <!-- === FUSION ENGINE === -->
+        <div class="absolute top-[280px] left-[800px] w-[180px] h-[80px] flex items-center justify-center z-20">
+             <div class="relative w-24 h-24 flex items-center justify-center">
+                 <!-- Spinning Reactor -->
+                 <div class="absolute inset-0 border-2 border-cyan-500/30 rounded-full animate-[spin_4s_linear_infinite]"></div>
+                 <div class="absolute inset-2 border-2 border-cyan-500/60 rounded-full border-t-transparent animate-[spin_2s_linear_infinite_reverse]"></div>
+                 <div class="bg-cyan-950/80 backdrop-blur border border-cyan-500 text-cyan-400 text-xs font-bold px-3 py-1 rounded">FUSION</div>
+             </div>
+        </div>
+
+        <!-- === DENSE OUTPUT === -->
+        <div class="node-shell w-[200px]" style="top: 280px; left: 1040px;">
+            <div class="node-header">DENSE_LAYER</div>
+            <div class="node-body space-y-1">
+                 <div class="w-full h-1 bg-slate-800"><div class="h-full bg-cyan-600 w-full"></div></div>
+                 <div class="w-full h-1 bg-slate-800"><div class="h-full bg-cyan-700 w-3/4"></div></div>
+                 <div class="w-full h-1 bg-slate-800"><div class="h-full bg-cyan-800 w-1/2"></div></div>
+            </div>
+            <div class="node-footer"><span>ACT: RELU</span><span>DROPOUT: 0.2</span></div>
+        </div>
+
+        <!-- === INFERENCE OUTPUTS === -->
+        <div class="node-shell w-[180px]" style="top: 200px; left: 1320px; border-color: #22c55e;">
+             <div class="node-header text-green-500">
+                <span>OUT_PRICE</span>
+            </div>
+            <div class="node-body text-center">
+                <div class="text-3xl font-bold text-white tracking-tighter">₹2450</div>
+                <div class="text-[9px] text-green-400 mt-1">PREDICTED CLOSE</div>
+            </div>
+        </div>
+
+        <div class="node-shell w-[180px]" style="top: 380px; left: 1320px; border-color: #f97316;">
+             <div class="node-header text-orange-500">
+                <span>OUT_RISK</span>
+            </div>
+            <div class="node-body text-center">
+                <div class="text-3xl font-bold text-white tracking-tighter">1:3.2</div>
+                <div class="text-[9px] text-orange-400 mt-1">RRR SCORE</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Live Terminal -->
+    <div class="system-log" id="terminal">
+        <div class="log-entry"><span class="log-time">14:02:22</span>Initializing GNN-LSTM Hybrid Pipeline...</div>
+        <div class="log-entry"><span class="log-time">14:02:23</span>Connecting to Market Data Stream [WSS://NSE_FEED]... OK</div>
+        <div class="log-entry"><span class="log-time">14:02:23</span>Loading BERT Embeddings (all-MiniLM-L6-v2)... OK</div>
+        <div class="log-entry"><span class="log-time">14:02:24</span>Graph Construction: 50 Nodes, 124 Edges created.</div>
+        <div class="log-entry"><span class="log-time">14:02:25</span><span class="text-cyan-400">PIPELINE READY.</span> Awaiting Tensors...</div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Terminal Animation
+        const terminal = document.getElementById('terminal');
+        const logs = [
+            "Fetching batch #4928 from RSS...",
+            "Vectorizing 12 news items...",
+            "Updating Adjacency Matrix A...",
+            "LSTM Forward Pass [Batch 64]...",
+            "GNN Aggregation Complete.",
+            "Fusion Layer: Concatenating [64, 128] + [64, 64]...",
+            "Inference: TATASTEEL -> BUY (Conf: 0.88)",
+            "Risk Engine: Calc Volatility...",
+            "Output Generated."
+        ];
+
+        let logIndex = 0;
+        setInterval(() => {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            const time = new Date().toLocaleTimeString('en-US', {hour12: false});
+            div.innerHTML = `<span class="log-time">${time}</span>${logs[logIndex]}`;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+            
+            logIndex = (logIndex + 1) % logs.length;
+            
+            // Keep DOM light
+            if (terminal.children.length > 8) terminal.removeChild(terminal.firstChild);
+        }, 2000);
+    </script>
+</body>
+</html>
