@@ -9,371 +9,406 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --node-bg: #161b22;
-            --border-color: #30363d;
-            --accent-blue: #58a6ff;   
-            --accent-purple: #bc8cff; 
-            --accent-green: #3fb950;   
-            --accent-orange: #d29922;      
-            --accent-pink: #f472b6;
+            --bg-color: #030508; /* Deep Void */
+            --node-bg: #0f111a;
+            --border-dim: #1e293b;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-purple: #a855f7;
+            --accent-pink: #ec4899;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
         }
 
         body {
             background-color: var(--bg-color);
-            color: #c9d1d9;
-            font-family: 'Inter', sans-serif;
+            color: #94a3b8;
+            font-family: 'JetBrains Mono', monospace;
             overflow: hidden;
             margin: 0; padding: 0;
-        }
-
-        /* --- Eraser.io Style Grid --- */
-        .blueprint-grid {
-            position: fixed; inset: 0; z-index: 0;
-            background-image: 
-                linear-gradient(#21262d 1px, transparent 1px),
-                linear-gradient(90deg, #21262d 1px, transparent 1px);
-            background-size: 20px 20px;
-            opacity: 0.3;
-        }
-
-        /* --- Engineering Nodes --- */
-        .node {
-            position: absolute;
-            background: var(--node-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            width: 220px;
-            z-index: 20;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
             user-select: none;
         }
 
-        .node:hover {
-            border-color: #c9d1d9;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transform: translateY(-2px);
+        /* --- BACKGROUND --- */
+        .cyber-grid {
+            position: fixed; inset: 0; z-index: 0;
+            background-image: 
+                linear-gradient(rgba(30, 41, 59, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 41, 59, 0.2) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 100%);
+            animation: pulseGrid 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseGrid {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.6; }
+        }
+
+        /* --- NODES (The Chips) --- */
+        .node {
+            position: absolute;
+            background: var(--node-bg);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            padding: 0;
+            width: 200px;
+            z-index: 20;
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .node::before { /* Status Bar */
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: var(--border-dim); transition: background 0.2s;
+        }
+
+        .node.active {
+            border-color: #cbd5e1;
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.2);
             z-index: 50;
         }
 
+        /* Node Internals */
         .node-header {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #8b949e;
-            margin-bottom: 8px;
+            padding: 10px 12px;
             display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-dim);
+            background: rgba(255,255,255,0.01);
         }
+        .node-content { padding: 12px; }
 
-        .node-title {
-            font-weight: 700;
-            font-size: 14px;
-            color: #f0f6fc;
-            margin-bottom: 4px;
-        }
+        /* Type Specific Colors (Hover & Active) */
+        .type-market.active { border-color: var(--accent-blue); } .type-market.active::before { background: var(--accent-blue); }
+        .type-news.active { border-color: var(--accent-purple); } .type-news.active::before { background: var(--accent-purple); }
+        .type-model.active { border-color: var(--accent-cyan); } .type-model.active::before { background: var(--accent-cyan); }
+        .type-out.active { border-color: var(--accent-green); } .type-out.active::before { background: var(--accent-green); }
 
-        .node-meta {
-            font-size: 11px;
-            color: #8b949e;
-            background: rgba(255,255,255,0.03);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-family: 'JetBrains Mono', monospace;
-            margin-top: 8px;
-        }
-
-        /* Specialized Borders */
-        .source-market { border-left: 3px solid var(--accent-blue); }
-        .source-news { border-left: 3px solid var(--accent-purple); }
-        .source-synth { border-left: 3px solid var(--accent-pink); }
-        .proc { border-top: 3px solid #8b949e; }
-        .model-lstm { border: 1px solid var(--accent-blue); box-shadow: 0 0 15px rgba(88, 166, 255, 0.1); }
-        .model-gnn { border: 1px solid var(--accent-purple); box-shadow: 0 0 15px rgba(188, 140, 255, 0.1); }
-        .fusion { border: 2px solid #fff; background: #21262d; }
-        .output { border-top: 3px solid var(--accent-green); }
-
-        /* --- Connection Layer --- */
-        #svg-layer {
+        /* --- PIPES (SVG Layer) --- */
+        #pipeline-svg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: none; overflow: visible;
         }
 
-        .connector-bg {
-            fill: none;
-            stroke: #30363d;
-            stroke-width: 3;
-            stroke-linejoin: round;
+        .pipe-bg {
+            fill: none; stroke: #1e293b; stroke-width: 2;
         }
-
-        .connector-flow {
-            fill: none;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-dasharray: 10 10;
+        
+        .pipe-flow {
+            fill: none; stroke-width: 2; stroke-linecap: round;
+            stroke-dasharray: 8 16; /* Short dash, long gap */
             animation: flow 1s linear infinite;
-        }
-        
-        .flow-blue { stroke: var(--accent-blue); }
-        .flow-purple { stroke: var(--accent-purple); animation-duration: 1.5s; }
-        .flow-green { stroke: var(--accent-success); stroke-width: 3; }
-        .flow-pink { stroke: var(--accent-pink); stroke-dasharray: 5 5; animation-duration: 2s; }
-        
-        .connector-dash {
-            fill: none;
-            stroke: #484f58;
-            stroke-width: 1.5;
-            stroke-dasharray: 4 4;
-            opacity: 0.5;
+            opacity: 0.15; /* Always visible but dim */
+            transition: opacity 0.2s, stroke-width 0.2s;
         }
 
-        @keyframes flow {
-            to { stroke-dashoffset: -20; }
+        /* The "Surge" Effect */
+        .pipe-flow.surge {
+            opacity: 1;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 6px currentColor);
         }
 
-        /* --- Labels --- */
-        .group-label {
-            position: absolute;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: #484f58;
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            transform: rotate(-90deg);
-            transform-origin: left bottom;
+        @keyframes flow { to { stroke-dashoffset: -24; } }
+
+        /* --- FUSION CORE ANIMATION --- */
+        @keyframes heartbeat {
+            0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); transform: scale(1); }
+            50% { box-shadow: 0 0 20px 10px rgba(6, 182, 212, 0); transform: scale(1.02); }
+            100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); transform: scale(1); }
         }
+        .fusion-core { animation: heartbeat 3s infinite; }
+        .fusion-core.fast { animation: heartbeat 0.8s infinite; }
 
     </style>
 </head>
-<body>
+<body class="w-screen h-screen flex flex-col">
 
-    <div class="blueprint-grid"></div>
+    <div class="cyber-grid"></div>
 
-    <!-- Header UI -->
-    <div class="fixed top-0 left-0 w-full h-14 bg-[#0d1117]/95 border-b border-[#30363d] flex items-center px-8 z-50 justify-between backdrop-blur">
+    <!-- HUD Header -->
+    <div class="fixed top-0 w-full h-14 bg-[#030508]/90 backdrop-blur-md border-b border-[#1e293b] flex items-center justify-between px-8 z-50">
         <div class="flex items-center gap-4">
-            <div class="w-8 h-8 bg-blue-500/10 border border-blue-500/30 rounded flex items-center justify-center">
-                <i data-lucide="cpu" class="w-5 h-5 text-blue-400"></i>
+            <div class="w-8 h-8 rounded bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+                <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
             </div>
             <div>
-                <h1 class="text-sm font-bold text-white tracking-widest">EQUDATOR <span class="text-slate-500">///</span> SYSTEM MAP</h1>
-                <div class="text-[10px] font-mono text-slate-500">HYBRID GNN-LSTM PIPELINE v2.0</div>
+                <h1 class="text-sm font-bold text-white tracking-widest">EQUDATOR <span class="text-slate-600">//</span> ARCHITECTURE</h1>
+                <div class="text-[9px] text-slate-500 font-mono">HYBRID GNN-LSTM PIPELINE</div>
             </div>
         </div>
-        <div class="flex gap-6 font-mono text-[10px]">
-            <div class="flex items-center gap-2 text-slate-400"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> SYSTEM ONLINE</div>
-            <div class="text-blue-400">MARKET DATA: CONNECTED</div>
-            <div class="text-purple-400">SENTIMENT: CONNECTED</div>
+        <div class="flex gap-6 text-[10px] font-mono">
+            <div class="flex items-center gap-2 text-slate-400">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> SYSTEM LIVE
+            </div>
+            <div id="activity-log" class="text-cyan-400 opacity-0 transition-opacity duration-500">
+                PROCESSING BATCH #<span id="batch-id">294</span>...
+            </div>
         </div>
     </div>
 
-    <!-- MAIN CANVAS -->
-    <div id="canvas-container" class="relative w-[1800px] h-[900px] mt-14 ml-10 scale-90 origin-top-left">
-        
-        <!-- SVG Connections Layer -->
-        <svg id="svg-layer">
-            <defs>
-                <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#30363d"/></marker>
-                <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#58a6ff"/></marker>
-                <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#bc8cff"/></marker>
-            </defs>
-        </svg>
+    <!-- CANVAS WRAPPER -->
+    <div id="viewport" class="flex-1 overflow-auto relative cursor-grab active:cursor-grabbing">
+        <div id="canvas" class="relative w-[1800px] h-[900px] mt-10 ml-20 scale-95 origin-top-left">
+            
+            <!-- SVG LAYER -->
+            <svg id="pipeline-svg"></svg>
 
-        <!-- === ZONE 1: INGESTION === -->
-        <div class="absolute left-0 top-[100px] h-[600px] border-l border-slate-800"></div>
-        <div class="group-label" style="left: -15px; top: 350px;">Data Ingestion</div>
+            <!-- =========================
+                 ZONE 1: DATA INGESTION
+            ========================= -->
+            <div class="absolute top-[50px] left-[50px] text-[10px] tracking-widest text-slate-600 font-bold">01 / INGESTION</div>
 
-        <!-- Node: Market Data -->
-        <div id="market" class="node source-market" style="top: 100px; left: 50px;">
-            <div class="node-header text-blue-400"><span>SRC_01</span><i data-lucide="candlestick-chart" class="w-4 h-4"></i></div>
-            <div class="node-title">Market API</div>
-            <div class="node-meta">Real-time OHLCV</div>
-            <div class="mt-2 text-[10px] text-slate-500 font-mono">NSE / BSE Stream</div>
-        </div>
-
-        <!-- Node: Synthetic -->
-        <div id="synth" class="node source-synth" style="top: 280px; left: 50px;">
-            <div class="node-header text-pink-400"><span>SRC_02</span><i data-lucide="box" class="w-4 h-4"></i></div>
-            <div class="node-title">Synthetic Gen</div>
-            <div class="node-meta">Pattern Injection</div>
-            <div class="mt-2 text-[10px] text-slate-500 font-mono">"Head & Shoulders"</div>
-        </div>
-
-        <!-- Node: RSS -->
-        <div id="rss" class="node source-news" style="top: 550px; left: 50px;">
-            <div class="node-header text-purple-400"><span>SRC_03</span><i data-lucide="rss" class="w-4 h-4"></i></div>
-            <div class="node-title">News Feeds</div>
-            <div class="node-meta">Unstructured Text</div>
-            <div class="mt-2 text-[10px] text-slate-500 font-mono">MoneyControl / ET</div>
-        </div>
-
-
-        <!-- === ZONE 2: FEATURE ENGINEERING === -->
-
-        <!-- Node: Tech Indicators -->
-        <div id="tech" class="node proc" style="top: 150px; left: 350px;">
-            <div class="node-header"><span>TRANSFORM</span></div>
-            <div class="node-title">Tech Indicators</div>
-            <div class="flex gap-2 mt-2">
-                <span class="px-2 py-1 bg-slate-800 rounded text-[9px] text-blue-300">RSI</span>
-                <span class="px-2 py-1 bg-slate-800 rounded text-[9px] text-blue-300">MACD</span>
+            <div id="node-market" class="node type-market" style="top: 100px; left: 50px;">
+                <div class="node-header"><span class="text-[9px] text-slate-500">SRC_01</span><i data-lucide="candlestick-chart" class="w-3 h-3 text-blue-500"></i></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-[13px] mb-1">Market API</div>
+                    <div class="text-[9px] text-slate-500 font-mono">OHLCV Stream (NSE)</div>
+                </div>
             </div>
-        </div>
 
-        <!-- Node: Embeddings -->
-        <div id="embed" class="node proc" style="top: 550px; left: 350px;">
-            <div class="node-header"><span>NLP CORE</span></div>
-            <div class="node-title">Embeddings</div>
-            <div class="node-meta">SentenceTransformer</div>
-            <div class="mt-2 h-1.5 w-full bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-purple-500 w-3/4 animate-pulse"></div></div>
-        </div>
-
-
-        <!-- === ZONE 3: MODELS & STRUCTURE === -->
-        <div class="absolute left-[600px] top-[100px] h-[600px] border-l border-slate-800"></div>
-
-        <!-- Node: LSTM (Top) -->
-        <div id="lstm" class="node model-lstm" style="top: 100px; left: 650px; height: 140px;">
-            <div class="node-header text-blue-400"><span>TEMPORAL</span></div>
-            <div class="node-title text-xl">LSTM Network</div>
-            <div class="node-meta">Sequence: 60 Days</div>
-            <div class="mt-3 flex gap-1">
-                <div class="h-3 w-3 bg-blue-900 rounded-sm"></div><div class="h-3 w-3 bg-blue-800 rounded-sm"></div><div class="h-3 w-3 bg-blue-600 rounded-sm"></div><div class="h-3 w-3 bg-blue-500 rounded-sm animate-pulse"></div>
+            <div id="node-synth" class="node type-synth" style="top: 280px; left: 50px;">
+                <div class="node-header"><span class="text-[9px] text-slate-500">SRC_02</span><i data-lucide="flask-conical" class="w-3 h-3 text-pink-500"></i></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-[13px] mb-1">Synthetic Gen</div>
+                    <div class="text-[9px] text-slate-500 font-mono">Pattern Injection</div>
+                </div>
             </div>
-        </div>
 
-        <!-- Node: Graph Construction (Middle) - THE WHITEBOARD KEY -->
-        <div id="graph" class="node proc" style="top: 350px; left: 650px;">
-            <div class="node-header"><span>STRUCTURAL</span></div>
-            <div class="node-title">Graph Gen</div>
-            <div class="node-meta">Adjacency Matrix</div>
-            <div class="mt-2 text-[9px] text-slate-500">Price Correlation + Semantic Link</div>
-        </div>
-
-        <!-- Node: GNN (Bottom) -->
-        <div id="gnn" class="node model-gnn" style="top: 550px; left: 650px; height: 140px;">
-            <div class="node-header text-purple-400"><span>RELATIONAL</span></div>
-            <div class="node-title text-xl">GNN Model</div>
-            <div class="node-meta">Graph Attention (GAT)</div>
-            <div class="mt-3 relative h-8">
-                <svg class="absolute inset-0 w-full h-full stroke-purple-500/50"><circle cx="10" cy="10" r="3" fill="#a855f7"/><circle cx="50" cy="20" r="3" fill="#a855f7"/><line x1="10" y1="10" x2="50" y2="20"/></svg>
+            <div id="node-rss" class="node type-news" style="top: 550px; left: 50px;">
+                <div class="node-header"><span class="text-[9px] text-slate-500">SRC_03</span><i data-lucide="rss" class="w-3 h-3 text-purple-500"></i></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-[13px] mb-1">News Feeds</div>
+                    <div class="text-[9px] text-slate-500 font-mono">Unstructured Text</div>
+                </div>
             </div>
+
+            <!-- =========================
+                 ZONE 2: PRE-PROCESSING
+            ========================= -->
+            <div class="absolute top-[50px] left-[350px] text-[10px] tracking-widest text-slate-600 font-bold">02 / TRANSFORM</div>
+
+            <div id="node-tech" class="node" style="top: 150px; left: 350px;">
+                <div class="node-header"><span class="text-[9px] text-slate-500">COMPUTE</span></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-[13px] mb-2">Tech Indicators</div>
+                    <div class="flex gap-2">
+                        <span class="px-1.5 py-0.5 bg-slate-800 rounded text-[9px] text-blue-300 border border-blue-900">RSI</span>
+                        <span class="px-1.5 py-0.5 bg-slate-800 rounded text-[9px] text-blue-300 border border-blue-900">MACD</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="node-embed" class="node" style="top: 550px; left: 350px;">
+                <div class="node-header"><span class="text-[9px] text-slate-500">NLP_PROC</span></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-[13px] mb-2">Embeddings</div>
+                    <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-purple-500 w-[60%]"></div>
+                    </div>
+                    <div class="text-[9px] text-right text-purple-400 mt-1">Vec: [384]</div>
+                </div>
+            </div>
+
+            <!-- =========================
+                 ZONE 3: MODELS
+            ========================= -->
+            <div class="absolute top-[50px] left-[650px] text-[10px] tracking-widest text-slate-600 font-bold">03 / NEURAL CORE</div>
+
+            <div id="node-lstm" class="node type-model" style="top: 100px; left: 650px; height: 140px;">
+                <div class="node-header"><span class="text-[9px] text-blue-400">TEMPORAL</span></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-lg mb-1">LSTM</div>
+                    <div class="text-[9px] text-slate-500">Sequential Logic (60d)</div>
+                    <!-- Mini Viz -->
+                    <div class="flex gap-1 mt-4 h-4 items-end">
+                        <div class="w-1 bg-blue-600 h-2"></div><div class="w-1 bg-blue-600 h-3"></div><div class="w-1 bg-blue-600 h-4"></div><div class="w-1 bg-blue-400 h-full animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="node-graph" class="node" style="top: 360px; left: 650px;">
+                <div class="node-header"><span class="text-[9px] text-slate-500">STRUCTURAL</span></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-[13px] mb-1">Graph Construct</div>
+                    <div class="text-[9px] text-slate-500 mb-2">Adjacency Matrix</div>
+                    <i data-lucide="share-2" class="w-4 h-4 text-slate-600 mx-auto"></i>
+                </div>
+            </div>
+
+            <div id="node-gnn" class="node type-model" style="top: 550px; left: 900px;">
+                <div class="node-header"><span class="text-[9px] text-purple-400">SPATIAL</span></div>
+                <div class="node-content">
+                    <div class="font-bold text-white text-lg mb-1">GNN</div>
+                    <div class="text-[9px] text-slate-500">Graph Attention (GAT)</div>
+                </div>
+            </div>
+
+            <!-- =========================
+                 ZONE 4: FUSION
+            ========================= -->
+            
+            <div id="node-fusion" class="node fusion-core type-model" style="top: 320px; left: 1150px; width: 140px; height: 140px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-color: var(--accent-cyan); background: rgba(6,182,212,0.05);">
+                <div class="text-[9px] text-cyan-400 mb-1 tracking-widest">CONCAT</div>
+                <div class="text-xl font-black text-white tracking-tighter">FUSION</div>
+                <div class="text-[9px] text-slate-500 mt-1">DENSE LAYER</div>
+            </div>
+
+            <!-- Dense Output Layer -->
+            <div id="node-dense" class="node" style="top: 340px; left: 1350px; width: 120px; height: 100px;">
+                <div class="node-header"><span class="text-[9px] text-slate-500">LAYER</span></div>
+                <div class="node-content text-center">
+                    <div class="font-bold text-white text-xs">Dropout</div>
+                    <div class="font-bold text-white text-xs">ReLU</div>
+                </div>
+            </div>
+
+            <!-- =========================
+                 ZONE 5: INFERENCE
+            ========================= -->
+            <div class="absolute top-[50px] left-[1550px] text-[10px] tracking-widest text-slate-600 font-bold">04 / OUTPUT</div>
+
+            <div id="node-price" class="node type-out" style="top: 220px; left: 1550px;">
+                <div class="node-header"><span class="text-[9px] text-green-400">TARGET</span></div>
+                <div class="node-content text-center">
+                    <div class="text-3xl font-bold text-white tracking-tighter">₹2450</div>
+                    <div class="text-[9px] text-green-400 mt-1">PREDICTED CLOSE</div>
+                </div>
+            </div>
+
+            <div id="node-risk" class="node type-out" style="top: 450px; left: 1550px; border-top: 3px solid #f59e0b;">
+                <div class="node-header"><span class="text-[9px] text-orange-400">RISK</span></div>
+                <div class="node-content text-center">
+                    <div class="text-3xl font-bold text-white tracking-tighter">1:3.2</div>
+                    <div class="text-[9px] text-orange-400 mt-1">RRR SCORE</div>
+                </div>
+            </div>
+
         </div>
-
-
-        <!-- === ZONE 4: FUSION === -->
-
-        <!-- Node: Fusion -->
-        <div id="fusion" class="node fusion" style="top: 320px; left: 950px; width: 160px; height: 160px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
-            <div class="w-12 h-12 rounded-full border-4 border-slate-700 border-t-white animate-spin mb-2"></div>
-            <div class="node-title text-xl">FUSION</div>
-            <div class="text-[10px] text-slate-400 font-mono">CONCATENATE</div>
-        </div>
-
-
-        <!-- === ZONE 5: OUTPUT === -->
-        
-        <!-- Node: Dense -->
-        <div id="dense" class="node" style="top: 340px; left: 1200px; width: 140px;">
-            <div class="node-header"><span>LAYER</span></div>
-            <div class="node-title text-sm">Dense/Dropout</div>
-        </div>
-
-        <!-- Outputs -->
-        <div id="out-price" class="node output" style="top: 220px; left: 1400px;">
-            <div class="node-header text-green-400"><span>TARGET</span></div>
-            <div class="node-title text-2xl">₹2450.50</div>
-            <div class="node-meta">Next Close</div>
-        </div>
-
-        <div id="out-risk" class="node output border-t-orange-500" style="top: 480px; left: 1400px;">
-            <div class="node-header text-orange-400"><span>RISK</span></div>
-            <div class="node-title text-2xl">1:3.2</div>
-            <div class="node-meta">RRR Score</div>
-        </div>
-
     </div>
 
-    <!-- Initialization Script -->
     <script>
         lucide.createIcons();
 
-        // --- THE CONNECTOR ENGINE ---
-        function drawConnection(startId, endId, style = 'blue', type = 'flow') {
-            const svg = document.getElementById('svg-layer');
-            const start = document.getElementById(startId);
-            const end = document.getElementById(endId);
-            
-            if (!start || !end) return;
+        // --- CONNECTOR ENGINE ---
+        // Draws precise lines between DOM elements
+        function connectNodes(id1, id2, color = '#334155') {
+            const svg = document.getElementById('pipeline-svg');
+            const n1 = document.getElementById(id1);
+            const n2 = document.getElementById(id2);
 
-            const startRect = start.getBoundingClientRect();
-            const endRect = end.getBoundingClientRect();
-            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            if (!n1 || !n2) return;
 
-            // Coordinate Calculation relative to container
-            const x1 = startRect.right - containerRect.left;
-            const y1 = startRect.top + (startRect.height / 2) - containerRect.top;
-            const x2 = endRect.left - containerRect.left;
-            const y2 = endRect.top + (endRect.height / 2) - containerRect.top;
+            // Geometry
+            const r1 = n1.getBoundingClientRect();
+            const r2 = n2.getBoundingClientRect();
+            const c = document.getElementById('canvas').getBoundingClientRect();
 
-            // Orthogonal Routing Logic (Elbows)
+            // Port Calculation (Right of Src -> Left of Dest)
+            const x1 = r1.right - c.left;
+            const y1 = r1.top + r1.height/2 - c.top;
+            const x2 = r2.left - c.left;
+            const y2 = r2.top + r2.height/2 - c.top;
+
+            // Elbow Logic
             const midX = x1 + (x2 - x1) / 2;
-            let d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+            const pathData = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
 
-            // Create Background Path (The "Wire")
-            const bgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            bgPath.setAttribute("d", d);
-            bgPath.setAttribute("class", "connector-bg");
-            svg.appendChild(bgPath);
+            // 1. Background Pipe
+            const pipe = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            pipe.setAttribute("d", pathData);
+            pipe.setAttribute("class", "pipe-bg");
+            svg.appendChild(pipe);
 
-            // Create Flow Path (The "Data")
-            if (type === 'flow') {
-                const flowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                flowPath.setAttribute("d", d);
-                flowPath.setAttribute("class", `connector-flow flow-${style}`);
-                svg.appendChild(flowPath);
-            } else if (type === 'dash') {
-                const dashPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                dashPath.setAttribute("d", d);
-                dashPath.setAttribute("class", "connector-dash");
-                svg.appendChild(dashPath);
+            // 2. Flow Stream (Animated)
+            const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            flow.setAttribute("d", pathData);
+            flow.setAttribute("class", "pipe-flow");
+            flow.setAttribute("id", `flow-${id1}-${id2}`); // ID for targeting
+            flow.style.stroke = color;
+            svg.appendChild(flow);
+        }
+
+        function drawSystem() {
+            document.getElementById('pipeline-svg').innerHTML = ''; // Reset
+
+            // --- WIRING THE WHITEBOARD ---
+            
+            // PATH A: MARKET (Blue)
+            connectNodes('node-market', 'node-tech', '#3b82f6');
+            connectNodes('node-synth', 'node-tech', '#ec4899');
+            connectNodes('node-tech', 'node-lstm', '#3b82f6');
+            connectNodes('node-lstm', 'node-fusion', '#3b82f6');
+            // Correlation Link
+            connectNodes('node-market', 'node-graph', '#3b82f6'); 
+
+            // PATH B: NEWS (Purple)
+            connectNodes('node-rss', 'node-embed', '#a855f7');
+            connectNodes('node-embed', 'node-graph', '#a855f7');
+            connectNodes('node-graph', 'node-gnn', '#a855f7');
+            connectNodes('node-gnn', 'node-fusion', '#a855f7');
+
+            // PATH C: OUTPUT (Green)
+            connectNodes('node-fusion', 'node-dense', '#22d3ee');
+            connectNodes('node-dense', 'node-price', '#22c55e');
+            connectNodes('node-dense', 'node-risk', '#f59e0b');
+        }
+
+        // --- AUTONOMOUS TRAFFIC SIMULATOR ---
+        // Makes the system "breathe" by firing random data packets
+        function simulateTraffic() {
+            const paths = [
+                ['node-market', 'node-tech'],
+                ['node-tech', 'node-lstm'],
+                ['node-lstm', 'node-fusion'],
+                ['node-rss', 'node-embed'],
+                ['node-embed', 'node-graph'],
+                ['node-graph', 'node-gnn'],
+                ['node-gnn', 'node-fusion'],
+                ['node-fusion', 'node-dense'],
+                ['node-dense', 'node-price']
+            ];
+
+            // Randomly pick a path to surge
+            const path = paths[Math.floor(Math.random() * paths.length)];
+            const flowId = `flow-${path[0]}-${path[1]}`;
+            const flowEl = document.getElementById(flowId);
+            const nodeEl = document.getElementById(path[1]); // The destination node
+
+            if (flowEl && nodeEl) {
+                // 1. Surge the line
+                flowEl.classList.add('surge');
+                
+                // 2. Activate the destination node briefly
+                setTimeout(() => {
+                    nodeEl.classList.add('active');
+                    // If hitting fusion, speed up heartbeat
+                    if (path[1] === 'node-fusion') document.getElementById('node-fusion').classList.add('fast');
+                }, 500);
+
+                // 3. Reset
+                setTimeout(() => {
+                    flowEl.classList.remove('surge');
+                    nodeEl.classList.remove('active');
+                    if (path[1] === 'node-fusion') document.getElementById('node-fusion').classList.remove('fast');
+                }, 1500);
             }
+
+            // Update Header Log
+            const batchId = Math.floor(Math.random() * 900) + 100;
+            document.getElementById('batch-id').innerText = batchId;
+            document.getElementById('activity-log').style.opacity = '1';
+            setTimeout(() => document.getElementById('activity-log').style.opacity = '0.5', 200);
         }
 
-        function renderDiagram() {
-            const svg = document.getElementById('svg-layer');
-            svg.innerHTML = ''; // Clear existing lines
-
-            // --- 1. MARKET DATA PATH (Blue) ---
-            drawConnection('market', 'tech', 'blue');
-            drawConnection('synth', 'tech', 'pink');
-            drawConnection('tech', 'lstm', 'blue');
-            drawConnection('lstm', 'fusion', 'blue');
-
-            // --- 2. NEWS DATA PATH (Purple) ---
-            drawConnection('rss', 'embed', 'purple');
-            drawConnection('embed', 'graph', 'purple');
-            drawConnection('graph', 'gnn', 'purple');
-            drawConnection('gnn', 'fusion', 'purple');
-
-            // --- 3. CORRELATION LINK (Whiteboard Detail) ---
-            // Market data also feeds graph construction
-            drawConnection('market', 'graph', 'blue', 'dash');
-
-            // --- 4. OUTPUT PATH (Green) ---
-            drawConnection('fusion', 'dense', 'green');
-            drawConnection('dense', 'out-price', 'green');
-            drawConnection('dense', 'out-risk', 'green');
-        }
-
-        // Initialize and handle resize
-        window.addEventListener('load', renderDiagram);
-        window.addEventListener('resize', renderDiagram);
-        
-        // Safety timeout to ensure fonts load
-        setTimeout(renderDiagram, 500);
+        // Init
+        window.addEventListener('load', () => {
+            setTimeout(drawSystem, 100);
+            // Start the "Heartbeat"
+            setInterval(simulateTraffic, 800); 
+        });
+        window.addEventListener('resize', drawSystem);
 
     </script>
 </body>
